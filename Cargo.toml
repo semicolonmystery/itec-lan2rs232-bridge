@@ -1,0 +1,54 @@
+[package]
+name = "itec-bridge"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+description = "Direct-IP client/bridge for ESTI E1868 'Network USB Server' (i-tec LAN2RS232)"
+
+[[bin]]
+name = "itec-bridge"
+path = "src/main.rs"
+
+# Minimal desktop GUI wrapper around the library (eframe/egui, pure-Rust, no
+# system webview). Reuses the library's shutdown-signal + log-sink seams.
+[[bin]]
+name = "itec-bridge-gui"
+path = "src/bin/gui.rs"
+
+[dependencies]
+# Async runtime for the local TCP endpoint and the Transport seam.
+tokio = { version = "=1.38.1", features = ["rt-multi-thread", "net", "io-util", "macros", "time", "signal", "sync"] }
+# CLI parsing. Pinned to 4.4.x: newer 4.5/4.6 patch releases pull deps that
+# require Cargo's edition2024 feature, which is unstable on the 1.75 toolchain.
+clap = { version = "=4.4.18", features = ["derive"] }
+# `async fn` in `dyn` traits: native AFIT (stable since 1.75) is not yet
+# object-safe, and we want `Box<dyn Transport>`, so use async-trait.
+async-trait = "0.1"
+# Local serial-port (com0com virtual COM) backend for `--serial` mode. 4.2.0 was
+# requested; it and its transitive deps build cleanly on Rust 1.75 (verified via
+# `cargo +1.75 build`). Default features only (no libudev/serde needed here).
+serialport = "4.2.0"
+
+# --- GUI-only deps (used by src/bin/gui.rs; compiled for the whole crate) -----
+# eframe/egui 0.27.x is the last line that builds on Rust 1.75 (0.28+ bump the
+# MSRV past 1.76). Default `glow` (OpenGL) backend — avoids wgpu's heavier,
+# newer-MSRV dependency tree. `persistence`/`accesskit` default features are
+# turned off: we persist settings ourselves (serde_json below) and they drag in
+# crates that do not build on 1.75.
+eframe = { version = "=0.27.2", default-features = false, features = ["glow", "default_fonts"] }
+# Settings persistence.
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# OS-specific config directory for the settings file.
+directories = "5"
+
+# --- Transitive-dep pins to keep the whole tree building on Rust 1.75 ---------
+# The default resolver (not MSRV-aware on 1.75) otherwise selects crates that
+# declare `edition2024`, which Cargo 1.75 cannot parse. `idna` 1.x pulls the
+# icu4x 2.0 tree (icu_normalizer/zerovec/yoke/...), all edition2024; pin to the
+# 0.5 line (unicode-* backend) and hold `url` to a release that accepts it.
+idna = "=0.5.0"
+url = "=2.5.2"
+
+[profile.release]
+opt-level = 3

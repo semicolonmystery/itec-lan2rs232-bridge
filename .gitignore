@@ -1,0 +1,16 @@
+# Build output
+/target/
+/itec-bridge-live.exe
+
+# Local-only working material (large / not part of the repo)
+/downloads/
+/raw/
+/ghidra_proj/
+/tools/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
